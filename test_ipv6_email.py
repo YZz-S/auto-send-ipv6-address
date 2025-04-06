@@ -78,6 +78,7 @@ def main():
     print("---------")
     print(f"SMTP服务器: {config['smtp_server']}")
     print(f"SMTP端口: {config['smtp_port']}")
+    print(f"加密方式: {config.get('smtp_encryption', 'SSL')}")
     print(f"发件人邮箱: {config['sender_email']}")
     print(f"接收人邮箱: {config['receiver_email']}")
     print(f"检查间隔: {config['check_interval']}秒")

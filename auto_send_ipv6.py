@@ -8,6 +8,7 @@ import os
 import json
 import subprocess
 import re
+import ssl
 
 # 配置文件路径
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
@@ -16,6 +17,7 @@ CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.j
 DEFAULT_CONFIG = {
     "smtp_server": "smtp.example.com",
     "smtp_port": 465,
+    "smtp_encryption": "SSL",  # 加密方式: SSL, TLS, 或 None
     "sender_email": "your_email@example.com",
     "sender_password": "your_password",
     "receiver_email": "receiver@example.com",
@@ -137,14 +139,31 @@ def send_email(config, ipv6_address):
     message["Subject"] = "IPv6地址通知"  # 直接使用纯文本主题
 
     try:
-        # 使用SSL连接SMTP服务器
-        smtp = smtplib.SMTP_SSL(config["smtp_server"], config["smtp_port"])
+        # 根据配置选择加密方式
+        encryption = config.get("smtp_encryption", "SSL").upper()
+
+        if encryption == "SSL":
+            # 使用SSL连接SMTP服务器（端口通常为465）
+            logger.info("使用SSL加密连接到SMTP服务器")
+            smtp = smtplib.SMTP_SSL(config["smtp_server"], config["smtp_port"])
+        elif encryption == "TLS":
+            # 使用TLS连接SMTP服务器（端口通常为587）
+            logger.info("使用TLS加密连接到SMTP服务器")
+            smtp = smtplib.SMTP(config["smtp_server"], config["smtp_port"])
+            smtp.starttls(context=ssl.create_default_context())
+        else:
+            # 使用普通连接（不推荐，大多数现代邮件服务器要求加密）
+            logger.warning("使用非加密连接到SMTP服务器，不推荐此配置")
+            smtp = smtplib.SMTP(config["smtp_server"], config["smtp_port"])
+
         # 登录
         smtp.login(config["sender_email"], config["sender_password"])
+
         # 发送邮件
         smtp.sendmail(
             config["sender_email"], config["receiver_email"], message.as_string()
         )
+
         # 关闭连接
         smtp.quit()
         logger.info(f"邮件发送成功，IPv6: {ipv6_address}")

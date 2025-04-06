@@ -1,6 +1,7 @@
 import smtplib
 import json
 import os
+import ssl
 from email.mime.text import MIMEText
 from auto_send_ipv6 import CONFIG_FILE
 
@@ -23,6 +24,7 @@ def test_qq_email(config):
     """专门测试QQ邮箱的SMTP发送功能"""
     print(f"SMTP服务器: {config['smtp_server']}")
     print(f"SMTP端口: {config['smtp_port']}")
+    print(f"加密方式: {config.get('smtp_encryption', 'SSL')}")
     print(f"发件人邮箱: {config['sender_email']}")
     print(f"收件人邮箱: {config['receiver_email']}")
 
@@ -49,7 +51,18 @@ def test_qq_email(config):
         print(f"Body: {message.get_payload(decode=True).decode('utf-8')}")
 
         print("\n连接到SMTP服务器...")
-        smtp = smtplib.SMTP_SSL(config["smtp_server"], config["smtp_port"])
+        encryption = config.get("smtp_encryption", "SSL").upper()
+
+        if encryption == "SSL":
+            print("使用SSL加密连接")
+            smtp = smtplib.SMTP_SSL(config["smtp_server"], config["smtp_port"])
+        elif encryption == "TLS":
+            print("使用TLS加密连接")
+            smtp = smtplib.SMTP(config["smtp_server"], config["smtp_port"])
+            smtp.starttls(context=ssl.create_default_context())
+        else:
+            print("警告: 使用非加密连接（不推荐）")
+            smtp = smtplib.SMTP(config["smtp_server"], config["smtp_port"])
 
         print("登录...")
         smtp.login(config["sender_email"], config["sender_password"])

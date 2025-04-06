@@ -1,9 +1,19 @@
 {
     "smtp_server": "smtp.example.com",
     "smtp_port": 465,
+    "smtp_encryption": "SSL",
     "sender_email": "your_email@example.com",
     "sender_password": "your_password",
     "receiver_email": "receiver@example.com",
     "check_interval": 3600,
-    "last_sent_ipv6": ""
+    "last_sent_ipv6": "",
+    
+    "paths": {
+        "log_file": "ipv6_sender.log",
+        "config_file": "config.json",
+        "vbs_script": "start_ipv6_sender.vbs",
+        "python_script": "auto_send_ipv6.py",
+        "startup_folder": "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+        "shortcut_name": "IPv6AddressSender.lnk"
+    }
 } 

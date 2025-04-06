@@ -13,11 +13,12 @@
 - 支持自定义邮箱设置和检查间隔
 - 自动记录日志，便于排查问题
 - 完全兼容中文环境和UTF-8编码
+- 所有路径可在配置文件中自定义，提高灵活性
 
 ## 文件说明
 
 - `auto_send_ipv6.py` - 主程序，负责获取IPv6地址并发送邮件
-- `config.json` - 配置文件，需要填写邮箱信息
+- `config.json` - 配置文件，包含邮箱信息和路径设置
 - `setup_autostart.bat` - 设置开机自启动的批处理脚本
 - `start_ipv6_sender.vbs` - 后台运行程序的VBS脚本（由setup_autostart.bat自动创建）
 - `test_ipv6_email.py` - 测试IPv6地址获取和邮件发送的脚本
@@ -31,7 +32,7 @@
 
 1. 确保您的系统已安装Python（建议3.6及以上版本）
 2. 下载本程序所有文件到同一个文件夹
-3. 修改`config.json`文件，填入您的邮箱设置
+3. 修改`config.json`文件，填入您的邮箱设置及自定义路径
 4. 运行`setup_autostart.bat`设置开机自启动
    - 它会自动安装所需的依赖库
    - 创建开机启动快捷方式
@@ -49,9 +50,31 @@
     "sender_password": "your_password",  // 发件人邮箱密码或授权码
     "receiver_email": "receiver@example.com",  // 接收者邮箱
     "check_interval": 3600,  // 检查间隔（单位：秒，默认为1小时）
-    "last_sent_ipv6": ""  // 最后一次发送的IPv6地址（自动更新，无需手动修改）
+    "last_sent_ipv6": "",  // 最后一次发送的IPv6地址（自动更新，无需手动修改）
+    
+    "paths": {  // 路径配置（所有路径均可自定义）
+        "log_file": "ipv6_sender.log",  // 日志文件路径
+        "config_file": "config.json",  // 配置文件路径
+        "vbs_script": "start_ipv6_sender.vbs",  // VBS脚本文件名
+        "python_script": "auto_send_ipv6.py",  // Python主程序文件名
+        "startup_folder": "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",  // 开机启动文件夹
+        "shortcut_name": "IPv6AddressSender.lnk"  // 快捷方式文件名
+    }
 }
 ```
+
+#### 路径配置说明
+
+路径配置提供以下功能：
+
+- `log_file`: 日志文件的路径，可以是相对路径或绝对路径
+- `config_file`: 配置文件自身的路径，通常不需要修改
+- `vbs_script`: 后台运行脚本的文件名
+- `python_script`: Python主程序的文件名
+- `startup_folder`: Windows系统的开机启动文件夹，可以自定义
+- `shortcut_name`: 在启动文件夹中创建的快捷方式名称
+
+注意：相对路径是相对于程序所在目录的路径，绝对路径则需要指定完整的系统路径。
 
 ### 常见邮箱SMTP设置
 
@@ -77,6 +100,7 @@
 
 1. **基本测试脚本**：`test_ipv6_email.py`
    - 显示系统信息和编码设置
+   - 显示当前配置的路径设置
    - 测试IPv6地址获取功能
    - 测试邮件发送功能
 
@@ -94,9 +118,17 @@
 1. 直接运行Python脚本：`python auto_send_ipv6.py`
 2. 或运行VBS脚本（后台运行）：双击`start_ipv6_sender.vbs`
 
+## 自定义安装位置
+
+如果您想将程序安装在非默认位置，可以：
+
+1. 修改`config.json`中的`paths`部分，设置自定义路径
+2. 将日志文件和其他文件放置在自定义位置
+3. 如需使用自定义的启动文件夹，请修改`startup_folder`路径
+
 ## 日志文件
 
-程序会自动生成日志文件`ipv6_sender.log`，记录以下信息：
+程序会自动生成日志文件`ipv6_sender.log`（或配置中指定的其他文件名），记录以下信息：
 - 程序启动和运行状态
 - IPv6地址获取方法和结果
 - 邮件发送成功或失败的详细信息
@@ -123,6 +155,13 @@
    - 是否已开启SMTP服务
    - 邮箱安全设置是否允许第三方应用访问
 
+### 路径问题
+
+如果遇到路径相关错误：
+1. 检查`config.json`中的路径配置是否正确
+2. 确保所有路径都能正确访问（特别是自定义了绝对路径的情况）
+3. Windows路径中的反斜杠需要使用双反斜杠`\\`表示
+
 ### 无法获取IPv6地址
 
 如果无法获取IPv6地址：
@@ -135,4 +174,5 @@
 - 请确保您的计算机已连接到网络并分配了IPv6地址
 - 某些邮箱服务提供商可能需要特殊设置，如开启SMTP服务或生成应用专用密码
 - 如需卸载，只需删除启动文件夹中的快捷方式即可停止自动启动
-- 程序默认每小时检查一次IPv6地址，可在配置文件中修改检查间隔 
+- 程序默认每小时检查一次IPv6地址，可在配置文件中修改检查间隔
+- 修改配置文件中的路径设置后，需要重新运行`setup_autostart.bat`以应用新的路径设置 

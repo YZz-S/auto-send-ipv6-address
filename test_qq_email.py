@@ -2,9 +2,7 @@ import smtplib
 import json
 import os
 from email.mime.text import MIMEText
-
-# 获取配置文件路径
-CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+from auto_send_ipv6 import CONFIG_FILE
 
 
 def load_config():
@@ -27,6 +25,12 @@ def test_qq_email(config):
     print(f"SMTP端口: {config['smtp_port']}")
     print(f"发件人邮箱: {config['sender_email']}")
     print(f"收件人邮箱: {config['receiver_email']}")
+
+    # 显示路径配置
+    if "paths" in config:
+        print("\n路径配置:")
+        for key, value in config["paths"].items():
+            print(f"{key}: {value}")
 
     test_ipv6 = "2001:db8::1234"  # 测试用的IPv6地址
 

@@ -3,10 +3,7 @@ import os
 import sys
 import locale
 import platform
-from auto_send_ipv6 import send_email, get_ipv6_address
-
-# 获取配置文件路径
-CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+from auto_send_ipv6 import send_email, get_ipv6_address, CONFIG_FILE
 
 
 def load_config():
@@ -23,7 +20,7 @@ def load_config():
         return None
 
 
-def show_system_info():
+def show_system_info(config):
     """显示系统信息"""
     print(f"系统平台: {platform.system()} {platform.version()}")
     print(f"Python版本: {sys.version}")
@@ -32,6 +29,13 @@ def show_system_info():
     print(f"本地设置: {locale.getdefaultlocale()}")
     print(f"当前工作目录: {os.getcwd()}")
     print(f"配置文件路径: {os.path.abspath(CONFIG_FILE)}")
+
+    # 显示路径配置
+    if "paths" in config:
+        print("\n路径配置:")
+        print("---------")
+        for key, value in config["paths"].items():
+            print(f"{key}: {value}")
 
 
 def test_send_email(config, ipv6_address):
@@ -56,11 +60,6 @@ def main():
     print("IPv6地址测试工具")
     print("================")
 
-    # 显示系统信息
-    print("\n系统信息:")
-    print("---------")
-    show_system_info()
-
     # 加载配置
     print("\n加载配置...")
     config = load_config()
@@ -68,6 +67,11 @@ def main():
         print("未能加载配置文件，请检查config.json是否存在并格式正确")
         input("按Enter键退出...")
         return
+
+    # 显示系统信息
+    print("\n系统信息:")
+    print("---------")
+    show_system_info(config)
 
     # 显示配置信息
     print("\n配置信息:")

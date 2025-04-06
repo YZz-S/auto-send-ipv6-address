@@ -9,18 +9,6 @@ import json
 import subprocess
 import re
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    filename=os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "ipv6_sender.log"
-    ),
-    filemode="a",
-    encoding="utf-8",  # 明确指定UTF-8编码
-)
-logger = logging.getLogger("auto_send_ipv6")
-
 # 配置文件路径
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 
@@ -33,6 +21,14 @@ DEFAULT_CONFIG = {
     "receiver_email": "receiver@example.com",
     "check_interval": 3600,  # 检查间隔，默认为1小时
     "last_sent_ipv6": "",
+    "paths": {
+        "log_file": "ipv6_sender.log",
+        "config_file": "config.json",
+        "vbs_script": "start_ipv6_sender.vbs",
+        "python_script": "auto_send_ipv6.py",
+        "startup_folder": "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+        "shortcut_name": "IPv6AddressSender.lnk",
+    },
 }
 
 
@@ -43,14 +39,32 @@ def load_config():
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            logger.error(f"加载配置文件失败: {e}")
+            print(f"加载配置文件失败: {e}")
             return DEFAULT_CONFIG
     else:
         # 创建默认配置文件
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(DEFAULT_CONFIG, f, indent=4, ensure_ascii=False)
-        logger.info(f"已创建默认配置文件: {CONFIG_FILE}")
+        print(f"已创建默认配置文件: {CONFIG_FILE}")
         return DEFAULT_CONFIG
+
+
+# 先加载配置
+config = load_config()
+
+# 配置日志
+log_file_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    config.get("paths", {}).get("log_file", "ipv6_sender.log"),
+)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    filename=log_file_path,
+    filemode="a",
+    encoding="utf-8",  # 明确指定UTF-8编码
+)
+logger = logging.getLogger("auto_send_ipv6")
 
 
 def save_config(config):
@@ -142,6 +156,11 @@ def send_email(config, ipv6_address):
 
 def main():
     logger.info("IPv6地址自动发送程序启动")
+
+    # 使用全局配置变量
+    global config
+
+    # 重新加载配置，确保使用最新的配置
     config = load_config()
 
     # 检查配置是否为默认值

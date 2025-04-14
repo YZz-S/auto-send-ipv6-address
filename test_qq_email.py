@@ -4,6 +4,8 @@ import os
 import ssl
 from email.mime.text import MIMEText
 from auto_send_ipv6 import CONFIG_FILE
+import socket
+from datetime import datetime  # 修改导入方式，直接导入datetime类而不是整个模块
 
 
 def load_config():
@@ -22,9 +24,25 @@ def load_config():
 
 def test_qq_email(config):
     """专门测试QQ邮箱的SMTP发送功能"""
-    print(f"SMTP服务器: {config['smtp_server']}")
-    print(f"SMTP端口: {config['smtp_port']}")
+    # 获取主机名
+    hostname = socket.gethostname()
+    
+    print(f"正在测试QQ邮箱SMTP功能...")
+    print(f"发送者: {config['sender_email']}")
+    print(f"接收者: {config['receiver_email']}")
+    print(f"SMTP服务器: {config['smtp_server']}:{config['smtp_port']}")
     print(f"加密方式: {config.get('smtp_encryption', 'SSL')}")
+    
+    # 在主题中添加主机名
+    subject = f"[{hostname}] QQ邮箱SMTP测试邮件"
+    # 在正文中也添加主机名信息
+    body = f"""来自设备 {hostname} 的QQ邮箱SMTP测试邮件：
+
+测试时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+测试IPv6地址: 2001:db8::1234
+
+此邮件由IPv6地址自动发送程序的QQ邮箱测试脚本生成，请勿回复。
+"""
     print(f"发件人邮箱: {config['sender_email']}")
     print(f"收件人邮箱: {config['receiver_email']}")
 
@@ -39,10 +57,11 @@ def test_qq_email(config):
     # 创建邮件对象
     print("\n创建邮件对象...")
     try:
-        message = MIMEText(f"测试邮件内容: IPv6地址 = {test_ipv6}", "plain", "utf-8")
-        message["Subject"] = "测试邮件"  # 不使用Header包装
-        message["From"] = config["sender_email"]  # 不使用Header包装
-        message["To"] = config["receiver_email"]  # 不使用Header包装
+        # 使用正确的主题和正文
+        message = MIMEText(body, "plain", "utf-8")
+        message["Subject"] = subject
+        message["From"] = config["sender_email"]
+        message["To"] = config["receiver_email"]
 
         print("\n邮件内容:")
         print(f"From: {message['From']}")

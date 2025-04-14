@@ -9,6 +9,47 @@ import json
 import subprocess
 import re
 import ssl
+import tempfile
+import atexit
+
+# 添加单实例检查
+def ensure_single_instance():
+    """确保程序只有一个实例在运行"""
+    lock_file = os.path.join(tempfile.gettempdir(), "ipv6_sender.lock")
+    
+    # 检查锁文件是否存在
+    if os.path.exists(lock_file):
+        # 检查进程是否仍在运行
+        try:
+            with open(lock_file, 'r') as f:
+                pid = int(f.read().strip())
+            
+            # 在Windows上检查进程是否存在
+            try:
+                # 使用tasklist命令检查进程
+                output = subprocess.check_output(f'tasklist /FI "PID eq {pid}"', shell=True)
+                if str(pid) in str(output):
+                    print(f"程序已经在运行 (PID: {pid})，退出当前实例。")
+                    sys.exit(0)
+            except:
+                # 如果检查失败，假设进程不存在
+                pass
+        except:
+            # 如果读取失败，假设锁文件无效
+            pass
+    
+    # 创建锁文件
+    with open(lock_file, 'w') as f:
+        f.write(str(os.getpid()))
+    
+    # 注册退出时删除锁文件
+    def cleanup():
+        try:
+            os.remove(lock_file)
+        except:
+            pass
+    
+    atexit.register(cleanup)
 
 # 配置文件路径
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
@@ -128,15 +169,33 @@ def get_ipv6_address():
         return None
 
 
-def send_email(config, ipv6_address):
-    """发送邮件"""
-    # 邮件内容
-    message = MIMEText(f"当前IPv6地址: {ipv6_address}", "plain", "utf-8")
+def send_email(ipv6_address, config):
+    # 获取主机名
+    hostname = socket.gethostname()
+    
+    sender_email = config["sender_email"]
+    receiver_email = config["receiver_email"]
+    password = config["sender_password"]
+    smtp_server = config["smtp_server"]
+    smtp_port = config["smtp_port"]
+    encryption = config.get("smtp_encryption", "SSL").upper()
+    
+    # 在主题中添加主机名
+    subject = f"[{hostname}] IPv6地址更新通知"
+    # 在正文中也添加主机名信息
+    body = f"""来自设备 {hostname} 的IPv6地址更新：
+
+IPv6地址: {ipv6_address}
+
+此邮件由IPv6地址自动发送程序生成，请勿回复。
+"""
+    # 邮件内容 - 这里需要修改，使用我们上面定义的带有主机名的内容
+    message = MIMEText(body, "plain", "utf-8")
 
     # 按照RFC标准设置邮件头
     message["From"] = config["sender_email"]  # 直接使用邮箱地址
     message["To"] = config["receiver_email"]  # 直接使用邮箱地址
-    message["Subject"] = "IPv6地址通知"  # 直接使用纯文本主题
+    message["Subject"] = subject  # 使用带有主机名的主题
 
     try:
         # 根据配置选择加密方式
@@ -174,6 +233,9 @@ def send_email(config, ipv6_address):
 
 
 def main():
+    # 确保只有一个实例在运行
+    ensure_single_instance()
+    
     logger.info("IPv6地址自动发送程序启动")
 
     # 使用全局配置变量
@@ -199,7 +261,8 @@ def main():
 
                 # 如果IPv6地址发生变化，则发送邮件
                 if ipv6_address != config["last_sent_ipv6"]:
-                    if send_email(config, ipv6_address):
+                    # 这里参数顺序错误，应该是(ipv6_address, config)而不是(config, ipv6_address)
+                    if send_email(ipv6_address, config):
                         # 更新最后发送的IPv6地址
                         config["last_sent_ipv6"] = ipv6_address
                         save_config(config)

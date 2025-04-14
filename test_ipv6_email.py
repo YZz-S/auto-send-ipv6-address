@@ -3,6 +3,8 @@ import os
 import sys
 import locale
 import platform
+import socket
+from datetime import datetime  # 添加datetime模块导入
 from auto_send_ipv6 import send_email, get_ipv6_address, CONFIG_FILE
 
 
@@ -38,11 +40,31 @@ def show_system_info(config):
             print(f"{key}: {value}")
 
 
-def test_send_email(config, ipv6_address):
+def test_send_email(ipv6_address, config):
     """测试发送邮件，捕获并显示详细错误信息"""
+    # 获取主机名
+    hostname = socket.gethostname()
+    
+    print(f"正在测试邮件发送功能...")
+    print(f"发送者: {config['sender_email']}")
+    print(f"接收者: {config['receiver_email']}")
+    print(f"SMTP服务器: {config['smtp_server']}:{config['smtp_port']}")
+    print(f"加密方式: {config.get('smtp_encryption', 'SSL')}")
+    
+    # 在主题中添加主机名
+    subject = f"[{hostname}] IPv6地址测试邮件"
+    # 在正文中也添加主机名信息
+    body = f"""来自设备 {hostname} 的IPv6地址测试邮件：
+
+测试时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+IPv6地址: {ipv6_address}
+
+此邮件由IPv6地址自动发送程序测试脚本生成，请勿回复。
+"""
     print("\n正在发送测试邮件...")
     try:
-        if send_email(config, ipv6_address):
+        # 修正参数顺序，应该是(ipv6_address, config)而不是(config, ipv6_address)
+        if send_email(ipv6_address, config):
             print("邮件发送成功！")
             return True
         else:
@@ -91,11 +113,10 @@ def main():
 
     if ipv6_address:
         print(f"成功获取IPv6地址: {ipv6_address}")
-
-        # 测试发送邮件
-        test_send_email(config, ipv6_address)
+        # 修正这里的参数顺序
+        test_send_email(ipv6_address, config)
     else:
-        print("未能获取IPv6地址，请检查网络连接和IPv6支持情况")
+        print("获取IPv6地址失败")
 
     input("\n测试完成，按Enter键退出...")
 

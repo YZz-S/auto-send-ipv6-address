@@ -10,6 +10,7 @@
   - 通过ipconfig命令解析系统网络配置
   - 通过在线API获取公网IPv6地址
 - 当IPv6地址变化时自动发送邮件通知
+- 支持仅发送开机通知功能，不检测IPv6地址
 - 支持多种加密传输方式（SSL/TLS），保障邮件传输安全
 - 支持自定义邮箱设置和检查间隔
 - 自动记录日志，便于排查问题
@@ -20,13 +21,18 @@
 ## 文件说明
 
 - `auto_send_ipv6.py` - 主程序，负责获取IPv6地址并发送邮件
+- `boot_notification.py` - 开机通知程序，仅在开机时发送通知邮件
 - `config.json` - 配置文件，包含邮箱信息和路径设置
-- `setup_autostart.bat` - 设置开机自启动的批处理脚本
-- `start_ipv6_sender.vbs` - 后台运行程序的VBS脚本（由setup_autostart.bat自动创建）
+- `setup_autostart.bat` - 设置IPv6地址发送功能开机自启动的批处理脚本
+- `setup_boot_notification.bat` - 设置开机通知功能自启动的批处理脚本
+- `start_ipv6_sender.vbs` - 后台运行IPv6发送程序的VBS脚本（由setup_autostart.bat自动创建）
+- `start_boot_notification.vbs` - 后台运行开机通知程序的VBS脚本（由setup_boot_notification.bat自动创建）
 - `test_ipv6_email.py` - 测试IPv6地址获取和邮件发送的脚本
+- `test_boot_notification.py` - 测试开机通知功能的脚本
 - `test_qq_email.py` - 专门测试QQ邮箱SMTP发送功能的脚本
 - `requirements.txt` - 依赖库列表
 - `ipv6_sender.log` - 日志文件（程序运行时自动创建）
+- `boot_notification.log` - 开机通知日志文件（开机通知程序运行时自动创建）
 
 ## 使用说明
 
@@ -35,8 +41,10 @@
 1. 确保您的系统已安装Python（建议3.6及以上版本）
 2. 下载本程序所有文件到同一个文件夹
 3. 修改`config.json`文件，填入您的邮箱设置及自定义路径
-4. 运行`setup_autostart.bat`设置开机自启动
-   - 它会自动安装所需的依赖库
+4. 根据需要选择安装方式：
+   - 运行`setup_autostart.bat`设置IPv6地址发送功能的开机自启动
+   - 或运行`setup_boot_notification.bat`设置开机通知功能的开机自启动
+   - 它们会自动安装所需的依赖库
    - 创建开机启动快捷方式
    - 生成后台运行的VBS脚本
    - 检测并防止重复安装，避免多实例问题

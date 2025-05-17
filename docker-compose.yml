@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  heartbeat-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: heartbeat-server:latest
+    container_name: heartbeat-server
+    restart: unless-stopped
+    ports:
+      - "13141:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      - heartbeat-network
+
+networks:
+  heartbeat-network:
+    driver: bridge 

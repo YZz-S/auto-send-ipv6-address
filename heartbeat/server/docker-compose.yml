@@ -9,7 +9,7 @@ services:
     container_name: heartbeat-server
     restart: unless-stopped
     ports:
-      - "13141:8080"
+      - "18080:8081"
     volumes:
       - ./data:/data
     environment:

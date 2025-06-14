@@ -1,20 +1,20 @@
 import os
 import json
 import time
-import socket
 import threading
 import http.server
 import socketserver
 import logging
 import smtplib
-from datetime import datetime, timedelta
+from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Dict, List
 
 # 配置日志
+log_file = os.environ.get("LOG_PATH", "heartbeat_server.log")
 logging.basicConfig(
-    filename="heartbeat_server.log",
+    filename=log_file,
     level=logging.INFO,
     format="[%(asctime)s] %(levelname)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
@@ -31,7 +31,7 @@ class HeartbeatRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         """覆盖默认的日志方法，使用我们的日志配置"""
-        logging.info(f"{self.client_address[0]} - {format%args}")
+        logging.info(f"{self.client_address[0]} - {format % args}")
 
     def do_GET(self):
         """处理GET请求"""

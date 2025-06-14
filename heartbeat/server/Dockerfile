@@ -6,11 +6,15 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制应用代码
+# 复制应用代码和启动脚本
 COPY heartbeat_server.py .
+COPY start.sh .
 
 # 创建配置目录和数据目录
 RUN mkdir -p /data
+
+# 设置启动脚本执行权限
+RUN chmod +x /app/start.sh
 
 # 设置环境变量
 ENV CONFIG_PATH=/data/heartbeat_config.json
@@ -21,4 +25,4 @@ ENV LOG_PATH=/data/heartbeat_server.log
 EXPOSE 8080
 
 # 启动命令
-CMD ["python", "heartbeat_server.py", "--config", "/data/heartbeat_config.json"] 
+CMD ["/app/start.sh"] 

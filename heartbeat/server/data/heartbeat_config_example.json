@@ -1,0 +1,14 @@
+{
+  "http_port": 8080,
+  "heartbeat_timeout": 300,
+  "check_interval": 60,
+  "email": {
+    "smtp_server": "smtp.qq.com",
+    "smtp_port": 465,
+    "smtp_encryption": "SSL",
+    "sender_email": "your_email@qq.com",
+    "sender_password": "your_email_password_or_app_password",
+    "receiver_email": "recipient@example.com",
+    "subject_prefix": "[心跳监控]"
+  }
+} 

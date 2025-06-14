@@ -1,0 +1,7 @@
+{
+  "server_url": "http://your-server-ip:18080",
+  "device_name": "My-Device",
+  "description": "客户端设备描述",
+  "heartbeat_interval": 60,
+  "device_id": "auto-generated"
+} 

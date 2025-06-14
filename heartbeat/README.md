@@ -124,6 +124,43 @@
 #### 网络连接失败时
 客户端会继续运行，但在日志中记录错误信息，不会在控制台显示错误。
 
+## 🔌 端口配置说明
+
+系统中涉及三个重要的端口配置，请确保它们的配置一致性：
+
+### 端口配置文件对照表
+
+| 文件 | 端口配置项 | 默认值 | 说明 |
+|-----|-----------|-------|------|
+| `docker-compose.yml` | `ports: "18080:8080"` | 主机端口18080，容器端口8080 | **主机端口18080**：外部访问服务器的端口<br/>**容器端口8080**：容器内应用监听的端口 |
+| `Dockerfile` | `EXPOSE 8080` | 8080 | 声明容器暴露的端口，必须与应用监听端口一致 |
+| `heartbeat_config_example.json` | `"http_port": 8080` | 8080 | 应用程序实际监听的端口 |
+
+### 🚨 重要提醒
+
+1. **容器端口一致性**：`Dockerfile`中的`EXPOSE`端口、`docker-compose.yml`中的容器端口、以及配置文件中的`http_port`必须保持一致
+2. **主机端口**：`docker-compose.yml`中的主机端口（18080）可以根据需要修改，但要确保防火墙允许该端口
+3. **访问地址**：客户端连接服务器时使用主机端口，例如：`http://your-server-ip:18080`
+
+### 📝 端口修改示例
+
+如果要修改服务端口为9090：
+
+```bash
+# 1. 修改 docker-compose.yml
+ports:
+  - "19090:9090"  # 主机端口19090，容器端口9090
+
+# 2. 修改 Dockerfile  
+EXPOSE 9090
+
+# 3. 修改配置文件 data/heartbeat_config.json
+{
+  "http_port": 9090,
+  ...
+}
+```
+
 ## 🔧 快速开始
 
 ### ⚡ 快速更新指南（针对已有用户）
@@ -158,7 +195,7 @@ python heartbeat_server.py
 
 1. **启动服务器**
 ```bash
-cd heartbeat
+cd heartbeat/server
 docker-compose up -d
 ```
 
@@ -169,6 +206,45 @@ nano ./data/heartbeat_config.json
 
 # 重启服务
 docker-compose restart
+```
+
+### 🔧 常见问题排查
+
+#### 问题1：`exec /app/start.sh: no such file or directory`
+
+**原因**：Docker容器中缺少bash或启动脚本权限问题
+
+**解决方案**：
+```bash
+# 1. 重新构建镜像（清除缓存）
+docker-compose down
+docker-compose build --no-cache
+
+# 2. 或者手动修复权限
+docker-compose exec heartbeat-server chmod +x /app/start.sh
+
+# 3. 重新启动
+docker-compose up -d
+```
+
+#### 问题2：端口配置不一致导致无法访问
+
+**检查清单**：
+- ✅ `docker-compose.yml` 中的端口映射：`"18080:8080"`
+- ✅ `Dockerfile` 中的暴露端口：`EXPOSE 8080`  
+- ✅ 配置文件中的监听端口：`"http_port": 8080`
+- ✅ 防火墙允许18080端口访问
+
+**验证端口**：
+```bash
+# 检查容器端口状态
+docker-compose ps
+
+# 检查端口监听
+docker-compose exec heartbeat-server netstat -tlnp | grep 8080
+
+# 测试外部访问
+curl http://your-server-ip:18080/health
 ```
 
 ## 🔄 更新已有的服务器端代码

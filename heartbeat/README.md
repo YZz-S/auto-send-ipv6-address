@@ -2,165 +2,18 @@
 
 这是一个分布式设备心跳监控系统，用于监控NAT网络环境下的设备在线状态，并在设备离线或恢复时自动发送邮件通知。
 
-## 📁 项目结构
+## 📋 项目简介
 
-项目现已重新组织为以下目录结构：
+该系统由两部分组成：
+- **心跳服务器** (`heartbeat_server.py`)：运行在公网可访问的服务器上，接收并处理心跳信号
+- **心跳客户端** (`heartbeat_client.py`)：运行在需要监控的设备上，定期发送心跳信号
 
-```
-heartbeat/
-├── client/                          # 客户端相关文件
-│   ├── heartbeat_client.py         # 客户端主程序
-│   ├── heartbeat_client_config.json # 客户端配置文件示例
-│   ├── requirements.txt            # Python依赖
-│   └── start_client.sh            # 客户端启动脚本
-├── server/                          # 服务器端相关文件
-│   ├── heartbeat_server.py         # 服务器主程序
-│   ├── heartbeat_server_config.json # 服务器配置文件示例
-│   ├── requirements.txt            # Python依赖
-│   ├── Dockerfile                  # Docker构建文件
-│   ├── docker-compose.yml         # Docker Compose配置
-│   ├── start.sh                   # Docker容器启动脚本
-│   ├── run_heartbeat_server.sh    # Linux服务器启动脚本
-│   └── data/                      # 数据目录（持久化存储）
-│       ├── heartbeat_config.json  # 实际配置文件
-│       ├── heartbeat_status.json  # 设备状态文件
-│       └── heartbeat_server.log   # 日志文件
-└── shared/                          # 共享文档
-    ├── README.md                   # 主要说明文档
-    ├── troubleshooting_guide.md    # 问题排查指南
-    ├── DOCKER_SETUP_README.md     # Docker部署指南
-    ├── docker_heartbeat_readme.md # Docker相关文档
-    └── heartbeat_readme.md        # 原始说明文档
-```
-
-## 🚀 快速开始
-
-### 方式一：Docker部署服务器（推荐）
-
-1. **进入服务器目录**
-```bash
-cd server
-```
-
-2. **启动服务器**
-```bash
-docker-compose up -d
-```
-
-3. **配置邮件通知**
-```bash
-# 编辑配置文件
-nano ./data/heartbeat_config.json
-
-# 重启服务
-docker-compose restart
-```
-
-### 方式二：手动部署
-
-#### 部署服务器
-
-1. **进入服务器目录**
-```bash
-cd server
-```
-
-2. **安装依赖并启动**
-```bash
-# 安装依赖
-pip install -r requirements.txt
-
-# 创建配置文件（如果不存在）
-python heartbeat_server.py --create-example
-
-# 编辑配置文件
-cp heartbeat_config_example.json heartbeat_config.json
-nano heartbeat_config.json
-
-# 启动服务器
-python heartbeat_server.py
-```
-
-#### 部署客户端
-
-1. **进入客户端目录**
-```bash
-cd client
-```
-
-2. **安装依赖并配置**
-```bash
-# 安装依赖
-pip install -r requirements.txt
-
-# 创建配置文件
-python heartbeat_client.py --create-example
-
-# 编辑配置文件
-cp heartbeat_client_config_example.json heartbeat_client_config.json
-nano heartbeat_client_config.json
-```
-
-3. **配置服务器地址**
-
-编辑 `heartbeat_client_config.json`：
-```json
-{
-  "server_url": "http://your-server-ip:18080",
-  "device_name": "My-NAS",
-  "description": "家庭NAS服务器",
-  "heartbeat_interval": 60
-}
-```
-
-4. **启动客户端**
-```bash
-# 使用启动脚本
-chmod +x start_client.sh
-./start_client.sh
-
-# 或直接运行
-python heartbeat_client.py
-```
-
-## 📋 文件说明
-
-### 客户端文件 (client/)
-
-| 文件名 | 必需 | 说明 |
-|--------|------|------|
-| `heartbeat_client.py` | ✅ | 客户端主程序 |
-| `requirements.txt` | ✅ | Python依赖包 |
-| `heartbeat_client_config.json` | ✅ | 配置文件（需要手动创建或从示例复制） |
-| `start_client.sh` | ❌ | 启动脚本（可选，方便使用） |
-
-### 服务器文件 (server/)
-
-#### Docker部署需要的文件
-| 文件名 | 必需 | 说明 |
-|--------|------|------|
-| `heartbeat_server.py` | ✅ | 服务器主程序 |
-| `Dockerfile` | ✅ | Docker镜像构建文件 |
-| `docker-compose.yml` | ✅ | Docker Compose配置 |
-| `start.sh` | ✅ | 容器启动脚本 |
-| `requirements.txt` | ✅ | Python依赖包 |
-| `data/` | ✅ | 数据目录（自动创建） |
-
-#### 手动部署需要的文件
-| 文件名 | 必需 | 说明 |
-|--------|------|------|
-| `heartbeat_server.py` | ✅ | 服务器主程序 |
-| `requirements.txt` | ✅ | Python依赖包 |
-| `heartbeat_server_config.json` | ✅ | 配置文件示例 |
-| `run_heartbeat_server.sh` | ❌ | Linux启动脚本（可选） |
-
-### 共享文档 (shared/)
-
-| 文件名 | 说明 |
-|--------|------|
-| `README.md` | 主要说明文档 |
-| `troubleshooting_guide.md` | 问题排查指南 |
-| `DOCKER_SETUP_README.md` | Docker部署详细指南 |
+### 设计目标
+- 监控NAT网络后的设备状态
+- 自动检测设备离线和恢复
+- 邮件通知状态变化
+- 轻量级，资源占用少
+- 支持Docker容器化部署
 
 ## 🚀 功能特性
 
@@ -181,52 +34,355 @@ python heartbeat_client.py
 
 系统会在以下情况自动发送邮件通知：
 
-### 1. 设备离线通知
-- **触发条件**：设备超过300秒（可配置）未发送心跳
-- **邮件内容**：离线设备信息、最后心跳时间、在线设备列表
+### 1. 设备离线通知 (offline)
+**触发条件：**
+- 设备超过配置的`heartbeat_timeout`时间（默认300秒）未发送心跳
+- 且设备之前的状态为"在线"
 
-### 2. 设备恢复通知
-- **触发条件**：离线设备重新发送心跳
-- **邮件内容**：恢复设备信息、恢复时间
+**邮件内容包含：**
+- 离线设备列表（设备名、ID、描述、最后心跳时间、IP地址）
+- 设备的详细系统信息（如果有）
+- 当前仍在线的设备列表
+- 通知发送时间
+
+**示例邮件标题：**
+```
+[心跳监控] 1台设备离线
+```
+
+### 2. 设备恢复在线通知 (recovery)
+**触发条件：**
+- 之前标记为离线的设备重新发送心跳信号
+
+**邮件内容包含：**
+- 恢复在线的设备信息
+- 恢复时间
+- 设备当前IP地址
+
+**示例邮件标题：**
+```
+[心跳监控] 设备恢复在线
+```
 
 ### 3. 邮件发送逻辑
-- 检查周期：每60秒（可配置）
-- 只在状态变化时发送邮件（避免重复通知）
+```
+检查周期：每60秒（可配置）
+超时判断：300秒内无心跳则标记离线（可配置）
+只在状态变化时发送邮件（避免重复通知）
+```
 
 ## 🖥️ 启动时控制台输出
 
-### 服务器启动（Docker）
+### 服务器启动
 
 #### 正常启动输出
 ```bash
 === 心跳监控服务器启动脚本 ===
 ✓ 配置文件已存在：/data/heartbeat_config.json
 === 启动心跳监控服务器 ===
-心跳监控服务器启动，监听端口: 8081
-设备可通过 http://[server-ip]:18080/heartbeat 发送心跳
+配置文件：/data/heartbeat_config.json
+状态文件：/data/heartbeat_status.json
+日志文件：/data/heartbeat_server.log
+=================================
+心跳监控服务器启动，监听端口: 8080
+设备可通过 http://[server-ip]:8080/heartbeat 发送心跳
 ```
 
 #### 首次启动（无配置文件）
 ```bash
 === 心跳监控服务器启动脚本 ===
 配置文件不存在，正在创建示例配置...
+已创建示例配置文件：heartbeat_config_example.json
 ✓ 已创建配置文件：/data/heartbeat_config.json
 ⚠️  请根据需要修改配置文件中的邮件设置等参数
+=== 启动心跳监控服务器 ===
+配置文件：/data/heartbeat_config.json
+状态文件：/data/heartbeat_status.json
+日志文件：/data/heartbeat_server.log
+=================================
+心跳监控服务器启动，监听端口: 8080
+设备可通过 http://[server-ip]:8080/heartbeat 发送心跳
+```
+
+#### 配置文件错误时
+```bash
+配置文件 '/data/heartbeat_config.json' 不存在。使用 --create-example 创建示例配置。
 ```
 
 ### 客户端启动
 
+#### 正常启动输出
 ```bash
-=== 心跳监控客户端启动脚本 ===
 心跳客户端启动，间隔: 60秒
+```
+
+#### 配置文件不存在时
+```bash
+配置文件 'heartbeat_client_config.json' 不存在。使用 --create-example 创建示例配置。
+```
+
+#### 网络连接失败时
+客户端会继续运行，但在日志中记录错误信息，不会在控制台显示错误。
+
+## 🔧 快速开始
+
+### ⚡ 快速更新指南（针对已有用户）
+
+如果你已经部署了心跳监控系统，想要更新到最新版本：
+
+#### Docker用户（30秒更新）
+```bash
+# 停止服务 → 更新代码 → 重建启动
+docker-compose down
+git pull  # 或下载新代码覆盖
+docker-compose build --no-cache
+docker-compose up -d
+
+# 验证更新：访问 http://your-server:port/health
+```
+
+#### 手动部署用户（1分钟更新）
+```bash
+# 停止服务 → 备份 → 替换文件 → 重启
+pkill -f heartbeat_server.py
+cp heartbeat_server.py heartbeat_server.py.backup
+# 下载新的 heartbeat_server.py 文件覆盖旧文件
+python heartbeat_server.py
+
+# 验证更新：访问 http://your-server:port/health
+```
+
+> 📖 **详细更新说明请看下方"🔄 更新已有的服务器端代码"章节**
+
+### Docker 部署（推荐）
+
+1. **启动服务器**
+```bash
+cd heartbeat
+docker-compose up -d
+```
+
+2. **配置邮件通知**
+```bash
+# 编辑配置文件
+nano ./data/heartbeat_config.json
+
+# 重启服务
+docker-compose restart
+```
+
+## 🔄 更新已有的服务器端代码
+
+### 📋 更新前准备
+
+#### 1. 停止现有服务
+```bash
+# Docker部署的用户
+docker-compose down
+
+# 手动部署的用户（如果使用systemd）
+sudo systemctl stop heartbeat-server
+
+# 或直接终止Python进程
+pkill -f heartbeat_server.py
+```
+
+#### 2. 备份重要数据
+```bash
+# 备份配置文件
+cp heartbeat_config.json heartbeat_config.json.backup
+cp -r data/ data_backup/  # Docker用户
+
+# 备份设备状态文件
+cp heartbeat_status.json heartbeat_status.json.backup
+```
+
+### 🚀 更新步骤
+
+#### 方式一：Docker用户（推荐）
+
+1. **拉取最新代码**
+```bash
+cd /path/to/your/heartbeat/project
+git pull origin main  # 或下载最新的源码包
+```
+
+2. **重新构建并启动**
+```bash
+cd server/
+docker-compose down
+docker-compose build --no-cache  # 强制重新构建镜像
+docker-compose up -d
+```
+
+3. **验证更新**
+```bash
+# 检查容器状态
+docker-compose ps
+
+# 查看启动日志
+docker-compose logs -f
+
+# 验证Web界面
+curl http://localhost:13141/health
+```
+
+#### 方式二：手动部署用户
+
+1. **下载最新代码**
+```bash
+# 备份当前代码
+cp heartbeat_server.py heartbeat_server.py.backup
+
+# 下载或复制新的服务器文件
+wget https://raw.githubusercontent.com/your-repo/heartbeat_server.py
+# 或直接替换 heartbeat_server.py 文件
+```
+
+2. **检查依赖**
+```bash
+# 比较requirements.txt是否有更新
+diff requirements.txt requirements.txt.new
+
+# 如有新依赖，进行安装
+pip install -r requirements.txt --upgrade
+```
+
+3. **启动服务**
+```bash
+# 直接启动
+python heartbeat_server.py
+
+# 或使用systemd（如果已配置）
+sudo systemctl start heartbeat-server
+```
+
+### ✅ 更新验证
+
+#### 1. 检查服务状态
+```bash
+# 验证HTTP服务
+curl http://localhost:8080/health
+curl http://localhost:8080/status
+
+# 检查日志
+tail -f heartbeat_server.log  # 手动部署
+docker-compose logs -f        # Docker部署
+```
+
+#### 2. 验证新功能
+访问以下链接确认Web界面已更新：
+
+- **首页（自动重定向）**: `http://your-server:port/`
+- **健康状态页面**: `http://your-server:port/health`
+- **设备监控页面**: `http://your-server:port/status`
+- **JSON API**: `http://your-server:port/api/status`
+
+#### 3. 确认新功能特性
+- ✅ **美化的Web界面**：渐变背景、现代化设计
+- ✅ **实时搜索功能**：设备名称和ID搜索
+- ✅ **状态筛选**：在线/离线设备筛选
+- ✅ **自动刷新控制**：可开启/暂停自动刷新
+- ✅ **响应式设计**：移动端适配
+- ✅ **根路径重定向**：访问根路径自动跳转到健康页面
+- ✅ **404页面美化**：统一设计风格的错误页面
+
+### 🔧 配置文件兼容性
+
+新版本完全兼容现有配置文件，无需修改配置文件格式。
+
+#### 配置文件检查
+```bash
+# 验证配置文件格式
+python -c "import json; print('配置文件格式正确') if json.load(open('heartbeat_config.json')) else print('配置文件格式错误')"
+```
+
+### 🚨 回滚方案
+
+如果更新后出现问题，可以快速回滚：
+
+#### Docker用户回滚
+```bash
+# 停止新版本
+docker-compose down
+
+# 恢复备份的配置
+cp data_backup/* data/
+
+# 使用旧版本镜像（如果需要）
+docker-compose up -d
+```
+
+#### 手动部署回滚
+```bash
+# 停止服务
+pkill -f heartbeat_server.py
+
+# 恢复代码文件
+cp heartbeat_server.py.backup heartbeat_server.py
+
+# 恢复配置和状态文件
+cp heartbeat_config.json.backup heartbeat_config.json
+cp heartbeat_status.json.backup heartbeat_status.json
+
+# 重新启动
+python heartbeat_server.py
+```
+
+### 📝 更新日志记录
+
+建议在每次更新时记录以下信息：
+```bash
+# 创建更新日志
+echo "$(date): 更新到版本X.X.X - 新增Web界面美化功能" >> update_history.log
+```
+
+### ⚠️ 注意事项
+
+1. **数据持久性**：设备状态数据会在更新过程中保留
+2. **服务中断**：更新过程中服务会短暂中断（通常1-2分钟）
+3. **客户端兼容**：新版服务器完全兼容旧版客户端
+4. **端口配置**：确认防火墙设置允许访问Web界面端口
+
+### 手动部署
+
+1. **安装依赖**
+```bash
+pip install -r requirements.txt
+```
+
+2. **启动服务器**
+```bash
+# 创建配置文件
+python heartbeat_server.py --create-example
+
+# 编辑配置文件
+nano heartbeat_config_example.json
+mv heartbeat_config_example.json heartbeat_config.json
+
+# 启动服务器
+python heartbeat_server.py
+```
+
+3. **配置客户端**
+```bash
+# 在需要监控的设备上
+python heartbeat_client.py --create-example
+
+# 编辑配置文件
+nano heartbeat_client_config_example.json
+mv heartbeat_client_config_example.json heartbeat_client_config.json
+
+# 启动客户端
+python heartbeat_client.py
 ```
 
 ## ⚙️ 配置说明
 
-### 服务器配置 (server/data/heartbeat_config.json)
+### 服务器配置 (`heartbeat_config.json`)
 ```json
 {
-  "http_port": 8081,                    # HTTP服务端口
+  "http_port": 8080,                    # HTTP服务端口
   "heartbeat_timeout": 300,             # 心跳超时时间（秒）
   "check_interval": 60,                 # 状态检查间隔（秒）
   "email": {
@@ -241,16 +397,58 @@ python heartbeat_client.py
 }
 ```
 
-### 客户端配置 (client/heartbeat_client_config.json)
+### 客户端配置 (`heartbeat_client_config.json`)
 ```json
 {
-  "server_url": "http://server-ip:18080", # 监控服务器地址
+  "server_url": "http://server-ip:8080", # 监控服务器地址
   "device_name": "NAS-Server",           # 设备名称
   "description": "家庭NAS服务器",        # 设备描述
   "heartbeat_interval": 60,              # 心跳发送间隔（秒）
-  "device_id": "auto-generated"          # 设备唯一ID（自动生成）
+  "device_id": "nas-001"                 # 设备唯一ID（可选，自动生成）
 }
 ```
+
+## 🌐 Web监控界面
+
+### 页面访问
+
+| 路径 | 说明 | 功能特色 |
+|------|------|----------|
+| `/` 或 `/index` 或 `/home` | 首页（自动重定向到健康页面） | 便捷访问 |
+| `/health` | 服务器健康状态页面 | 服务器运行时长、设备统计、在线率 |
+| `/status` | 设备监控状态页面 | 设备列表、搜索筛选、详细信息 |
+| `/api/status` | JSON API接口 | 程序化访问设备数据 |
+
+### 🎨 界面特色
+
+#### 健康状态页面 (`/health`)
+- **💫 动效设计**：心跳动画、浮动背景、脉冲指示器
+- **📊 实时统计**：服务器运行时长、设备统计、在线率
+- **🔄 自动更新**：实时时间显示、动态背景效果
+- **📱 响应式设计**：完美适配桌面端和移动端
+
+#### 设备监控页面 (`/status`)
+- **🔍 实时搜索**：支持设备名称和ID的即时搜索
+- **🎛️ 状态筛选**：快速筛选在线/离线设备
+- **📋 设备详情**：
+  - 基础信息：IP地址、心跳时间、连接时长
+  - 系统概要：主机名、内存使用、磁盘使用
+  - 详细信息：可展开查看完整系统信息
+- **⚡ 自动刷新**：支持30秒自动刷新，可手动控制
+- **📶 在线指示**：信号强度动画、状态脉冲指示
+
+#### 404错误页面
+- **🎯 友好提示**：清晰的错误说明和导航建议
+- **🔗 快速导航**：直接链接到主要功能页面
+- **🎨 统一设计**：与主界面保持一致的设计风格
+
+### 💡 使用技巧
+
+1. **搜索功能**：在设备监控页面可实时搜索设备名称或ID
+2. **筛选功能**：使用顶部按钮快速筛选在线/离线设备
+3. **详情展开**：点击"查看详情"按钮展开设备完整系统信息
+4. **自动刷新**：可通过"暂停自动刷新"按钮控制页面更新
+5. **移动访问**：支持手机和平板设备访问，布局自动适配
 
 ## 📡 API接口
 
@@ -265,7 +463,8 @@ Content-Type: application/json
   "description": "设备描述",
   "info": {
     "hostname": "mynas",
-    "platform": "Linux"
+    "platform": "Linux",
+    "ip": "192.168.1.100"
   }
 }
 ```
@@ -273,56 +472,155 @@ Content-Type: application/json
 ### 查看设备状态
 ```http
 GET /status
+
 # 返回所有设备的当前状态
+{
+  "devices": {
+    "device-001": {
+      "name": "设备名称",
+      "status": "online",
+      "last_heartbeat": "2024-01-01 12:00:00",
+      "ip": "192.168.1.100"
+    }
+  },
+  "server_time": "2024-01-01 12:00:00"
+}
 ```
 
 ### 健康检查
 ```http
 GET /health
+
 # 返回服务器运行状态
+Heartbeat server is running
 ```
+
+## 📊 系统信息收集
+
+客户端会自动收集以下系统信息：
+
+### 基础信息
+- 主机名
+- 操作系统平台
+- 处理器架构
+- Python版本
+- 系统启动时间
+
+### 网络信息
+- 主IP地址
+- 所有网络接口信息
+
+### 系统资源
+- **磁盘使用情况**：各分区使用率
+- **内存使用情况**：总内存、已用内存、使用率
+- **系统负载**：CPU使用率（Windows）或负载平均值（Linux/macOS）
+
+## 📝 日志记录
+
+### 服务器日志 (`heartbeat_server.log`)
+- 服务器启动/停止
+- 设备心跳接收
+- 设备状态变化
+- 邮件发送结果
+- 错误信息
+
+### 客户端日志 (`heartbeat_client.log`)
+- 客户端启动/停止
+- 心跳发送结果
+- 网络连接错误
+- 配置加载情况
+
+## 🐳 Docker 部署详情
+
+### 文件结构
+```
+heartbeat/
+├── Dockerfile                    # Docker构建文件
+├── docker-compose.yml           # Docker Compose配置
+├── start.sh                     # 容器启动脚本
+├── heartbeat_server.py          # 服务器主程序
+├── requirements.txt             # Python依赖
+└── data/                        # 数据目录（持久化）
+    ├── heartbeat_config.json    # 配置文件
+    ├── heartbeat_status.json    # 设备状态
+    └── heartbeat_server.log     # 日志文件
+```
+
+### 端口映射
+- 容器内端口：8080
+- 主机端口：13141（可在docker-compose.yml中修改）
+
+### 数据持久化
+通过Volume挂载`./data`目录，确保配置和数据不会因容器重启而丢失。
 
 ## 🔍 故障排查
 
 ### 常见问题
 
-1. **端口冲突**
-   - 修改服务器配置中的 `http_port`
-   - 修改 `docker-compose.yml` 中的端口映射
-
-2. **邮件发送失败**
-   - 检查SMTP配置
+1. **邮件发送失败**
+   - 检查SMTP配置是否正确
    - 确认邮箱密码或应用专用密码
+   - 验证网络连接
 
-3. **客户端连接失败**
-   - 确认服务器地址和端口
-   - 检查防火墙设置
+2. **设备显示离线但实际在线**
+   - 检查心跳超时时间设置
+   - 确认客户端配置的服务器地址
+   - 查看客户端日志
 
-### 快速诊断
+3. **Docker容器无法启动**
+   - 检查端口是否被占用
+   - 查看容器日志：`docker-compose logs -f`
 
-**服务器端**：
+### 监控命令
 ```bash
-cd server
+# 查看容器状态
+docker-compose ps
+
+# 查看实时日志
 docker-compose logs -f
-curl http://localhost:18080/health
+
+# 检查服务健康状态
+curl http://localhost:13141/health
+
+# 查看所有设备状态
+curl http://localhost:13141/status
 ```
 
-**客户端端**：
-```bash
-cd client
-tail -f heartbeat_client.log
-```
+### To-do
 
-详细的排查指南请参考 `shared/troubleshooting_guide.md`
+1.我希望在服务端代码看到有机器连接或者断开。
+2.增强项目安全性。
+3.增加发送测试邮件的功能。
 
-## 🐳 Docker 部署详情
+## 📋 项目文件说明
 
-- **容器内端口**: 8081 (避免8080冲突)
-- **外部访问端口**: 18080
-- **数据持久化**: 通过 `./data` 目录挂载
-- **配置文件**: 自动创建或手动配置
+| 文件名 | 说明 |
+|--------|------|
+| `heartbeat_server.py` | 服务器主程序 |
+| `heartbeat_client.py` | 客户端主程序 |
+| `Dockerfile` | Docker镜像构建文件 |
+| `docker-compose.yml` | Docker Compose配置 |
+| `start.sh` | 容器启动脚本 |
+| `requirements.txt` | Python依赖包 |
+| `run_heartbeat_server.sh` | Linux启动脚本 |
+| `DOCKER_SETUP_README.md` | Docker部署详细指南 |
 
-详细的Docker部署指南请参考 `shared/DOCKER_SETUP_README.md`
+## 📈 版本更新历史
+
+### 最新版本特性
+- ✅ **美化Web界面**：全新的现代化设计，支持响应式布局
+- ✅ **实时搜索筛选**：设备名称/ID搜索，在线/离线状态筛选
+- ✅ **动态效果**：心跳动画、信号强度指示、浮动背景
+- ✅ **自动刷新控制**：可控制的30秒自动刷新功能
+- ✅ **根路径重定向**：访问根目录自动跳转到健康页面
+- ✅ **美化404页面**：统一设计风格的错误页面
+- ✅ **增强系统信息**：更详细的设备系统信息展示
+- ✅ **移动端优化**：完美的移动设备访问体验
+
+### 兼容性说明
+- 🔄 **向后兼容**：新版本完全兼容旧版配置文件和客户端
+- 📊 **数据保持**：更新过程中设备状态数据完全保留
+- 🔧 **配置不变**：无需修改现有配置文件格式
 
 ## 🤝 贡献
 
@@ -330,4 +628,4 @@ tail -f heartbeat_client.log
 
 ## 📄 许可证
 
-本项目采用MIT许可证。 
+本项目采用MIT许可证，详见LICENSE文件。 

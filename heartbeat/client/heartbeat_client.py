@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 import time
 import socket
@@ -10,13 +9,30 @@ import uuid
 import subprocess
 from datetime import datetime
 
-# 配置日志
-logging.basicConfig(
-    filename="heartbeat_client.log",
-    level=logging.INFO,
-    format="[%(asctime)s] %(levelname)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
+# 配置日志 - 同时输出到文件和控制台
+log_formatter = logging.Formatter(
+    "[%(asctime)s] %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
 )
+
+# 文件处理器
+file_handler = logging.FileHandler("heartbeat_client.log", encoding="utf-8")
+file_handler.setFormatter(log_formatter)
+
+# 控制台处理器（美化输出）
+console_handler = logging.StreamHandler()
+console_formatter = logging.Formatter(
+    "\033[36m[%(asctime)s]\033[0m \033[1m%(levelname)s\033[0m: %(message)s",
+    datefmt="%H:%M:%S",
+)
+console_handler.setFormatter(console_formatter)
+
+# 配置根日志器
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+# 为了向后兼容，保留原有的 logging 使用方式
 
 # 配置文件路径
 CONFIG_FILE = "heartbeat_client_config.json"
@@ -327,13 +343,15 @@ def generate_device_id():
 
 def send_heartbeat():
     """发送心跳请求"""
+    start_time = time.time()
+
     try:
         config = load_config()
 
         # 服务器URL
         server_url = config.get("server_url", "")
         if not server_url:
-            logging.error("配置文件中未指定服务器URL")
+            logging.error("❌ 配置文件中未指定服务器URL")
             return False
 
         # 组装心跳URL
@@ -344,8 +362,35 @@ def send_heartbeat():
         device_name = config.get("device_name", socket.gethostname())
         device_description = config.get("description", "")
 
+        logging.info("📡 正在发送心跳信号...")
+        logging.info(f"   设备名称: {device_name}")
+        logging.info(f"   设备ID: {device_id}")
+        logging.info(f"   服务器地址: {server_url}")
+
         # 附加信息
+        logging.info("🔍 收集系统信息...")
         additional_info = get_machine_info()
+
+        # 显示关键系统信息
+        if additional_info:
+            hostname = additional_info.get("hostname", "未知")
+            platform_info = additional_info.get("platform", "未知")
+            primary_ip = additional_info.get("primary_ip", "未知")
+
+            logging.info(f"   主机名: {hostname}")
+            logging.info(f"   系统: {platform_info}")
+            logging.info(f"   IP地址: {primary_ip}")
+
+            # 显示内存和磁盘信息
+            memory = additional_info.get("memory")
+            if memory:
+                logging.info(f"   内存使用: {memory.get('percent', '未知')}")
+
+            disk_usage = additional_info.get("disk_usage")
+            if disk_usage and len(disk_usage) > 0:
+                main_disk = disk_usage[0]
+                disk_percent = main_disk.get("percent", "未知")
+                logging.info(f"   磁盘使用: {disk_percent}")
 
         # 心跳数据
         heartbeat_data = {
@@ -358,25 +403,44 @@ def send_heartbeat():
 
         # 发送请求
         headers = {"Content-Type": "application/json"}
+        logging.info(f"🚀 发送心跳数据到 {heartbeat_url}")
+
         response = requests.post(
             heartbeat_url, data=json.dumps(heartbeat_data), headers=headers, timeout=10
         )
 
+        elapsed_time = round((time.time() - start_time) * 1000, 2)
+
         # 检查响应
         if response.status_code == 200:
-            logging.info(f"心跳发送成功，服务器响应: {response.text}")
+            logging.info(f"✅ 心跳发送成功! 响应时间: {elapsed_time}ms")
+            logging.info(f"   服务器响应: {response.text.strip()}")
             return True
         else:
-            logging.error(
-                f"心跳发送失败，状态码: {response.status_code}, 响应: {response.text}"
-            )
+            logging.error("❌ 心跳发送失败!")
+            logging.error(f"   状态码: {response.status_code}")
+            logging.error(f"   响应内容: {response.text}")
             return False
 
+    except requests.ConnectionError:
+        elapsed_time = round((time.time() - start_time) * 1000, 2)
+        logging.error(f"🔌 网络连接失败 ({elapsed_time}ms): 无法连接到服务器")
+        logging.error("   请检查: 1) 服务器是否运行 2) 网络连接 3) 服务器地址配置")
+        return False
+    except requests.Timeout:
+        elapsed_time = round((time.time() - start_time) * 1000, 2)
+        logging.error(f"⏰ 请求超时 ({elapsed_time}ms): 服务器响应过慢")
+        return False
     except requests.RequestException as e:
-        logging.error(f"发送请求时出错: {e}")
+        elapsed_time = round((time.time() - start_time) * 1000, 2)
+        logging.error(f"🌐 网络请求出错 ({elapsed_time}ms): {e}")
         return False
     except Exception as e:
-        logging.error(f"发送心跳时出错: {e}")
+        elapsed_time = round((time.time() - start_time) * 1000, 2)
+        logging.error(f"💥 发送心跳时出现未知错误 ({elapsed_time}ms): {e}")
+        import traceback
+
+        logging.error("%s", traceback.format_exc())
         return False
 
 
@@ -427,16 +491,37 @@ def main():
         # 加载配置
         config = load_config()
         heartbeat_interval = config.get("heartbeat_interval", 60)  # 默认60秒
+        server_url = config.get("server_url", "未配置")
+        device_name = config.get("device_name", socket.gethostname())
 
-        logging.info(f"心跳客户端启动，间隔: {heartbeat_interval}秒")
-        print(f"心跳客户端启动，间隔: {heartbeat_interval}秒")
+        # 启动banner
+        print("\n" + "=" * 60)
+        print("💓 心跳监控客户端 - Heartbeat Client")
+        print("=" * 60)
+        print(f"📅 启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"🏷️  设备名称: {device_name}")
+        print(f"🌐 服务器地址: {server_url}")
+        print(f"⏰ 心跳间隔: {heartbeat_interval}秒")
+        print(f"📁 配置文件: {CONFIG_FILE}")
+        print(f"📝 日志文件: heartbeat_client.log")
+        print("=" * 60)
+
+        logging.info("🚀 心跳监控客户端启动")
+        logging.info(f"   配置文件: {CONFIG_FILE}")
+        logging.info(f"   设备名称: {device_name}")
+        logging.info(f"   服务器地址: {server_url}")
+        logging.info(f"   心跳间隔: {heartbeat_interval}秒")
 
         # 立即发送第一次心跳
+        print("\n🔄 开始心跳监控...\n")
         send_heartbeat()
 
         # 循环发送心跳
+        heartbeat_count = 1
         while True:
             time.sleep(heartbeat_interval)
+            heartbeat_count += 1
+            logging.info(f"📊 第 {heartbeat_count} 次心跳")
             send_heartbeat()
 
     except FileNotFoundError:
@@ -448,7 +533,7 @@ def main():
         logging.error(f"客户端运行出错: {e}")
         import traceback
 
-        logging.error(traceback.format_exc())
+        logging.error("%s", traceback.format_exc())
         print(f"客户端运行出错: {e}")
 
 

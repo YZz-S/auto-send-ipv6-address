@@ -162,8 +162,27 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 - 运行 `test_powershell.ps1` 测试PowerShell环境
 
 #### 2. PowerShell执行策略错误
+**症状**: `无法加载文件...因为在此系统上禁止运行脚本`
+
+**解决方案（按优先级排序）**:
+
+**方法1**: 设置用户级执行策略（推荐）
 ```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+```
+
+**方法2**: 使用专用启动器（最简单）
+- 双击 `run_autostart_setup.bat` - 自动设置并运行自启动配置
+- 双击 `run_client_powershell.bat` - 直接启动客户端
+
+**方法3**: 临时绕过策略
+```powershell
+powershell -ExecutionPolicy Bypass -File "setup_autostart.ps1"
+```
+
+**方法4**: 管理员模式设置（需要管理员权限）
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine
 ```
 
 #### 3. PowerShell中文乱码

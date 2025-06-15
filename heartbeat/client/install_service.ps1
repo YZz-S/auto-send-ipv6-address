@@ -1,8 +1,16 @@
 # 需要管理员权限运行
 #Requires -RunAsAdministrator
 
-# 设置控制台编码为UTF-8
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+# 设置错误处理和编码
+$ErrorActionPreference = "Continue"
+try {
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    $Host.UI.RawUI.OutputEncoding = [System.Text.Encoding]::UTF8
+    # 尝试设置控制台代码页为UTF-8
+    chcp 65001 | Out-Null
+} catch {
+    Write-Host "Warning: Could not set UTF-8 encoding" -ForegroundColor Yellow
+}
 
 # 颜色输出函数
 function Write-Info {

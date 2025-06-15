@@ -1,8 +1,16 @@
 # PowerShell执行策略设置
 # Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
+# 设置错误处理
+$ErrorActionPreference = "Continue"
+
 # 设置控制台编码为UTF-8
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+try {
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    $Host.UI.RawUI.OutputEncoding = [System.Text.Encoding]::UTF8
+} catch {
+    Write-Host "Warning: Could not set UTF-8 encoding" -ForegroundColor Yellow
+}
 
 # 设置颜色输出函数
 function Write-ColoredText {

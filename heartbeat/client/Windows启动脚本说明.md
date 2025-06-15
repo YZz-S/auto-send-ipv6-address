@@ -153,25 +153,42 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ### 常见问题
 
-#### 1. PowerShell执行策略错误
+#### 1. 中文编码问题
+**症状**: 批处理脚本显示 `'查Python依赖...' is not recognized as an internal or external command`
+
+**解决方案**:
+- 使用 `start_client.bat` (英文版) 或 `start_client_cn.bat` (中文版)
+- 运行 `test_environment.bat` 测试基础环境
+- 运行 `test_powershell.ps1` 测试PowerShell环境
+
+#### 2. PowerShell执行策略错误
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-#### 2. Python未找到
+#### 3. PowerShell中文乱码
+**所有PowerShell脚本已优化，包含以下编码设置**:
+```powershell
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$Host.UI.RawUI.OutputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001 | Out-Null
+```
+
+#### 4. Python未找到
 - 确保Python已安装
 - 确保Python已添加到PATH环境变量
+- 运行 `test_environment.bat` 检查
 
-#### 3. 依赖包安装失败
+#### 5. 依赖包安装失败
 ```bash
 pip install -r requirements.txt
 ```
 
-#### 4. 配置文件不存在
+#### 6. 配置文件不存在
 - 首次运行会自动创建示例配置
 - 编辑配置文件设置服务器地址
 
-#### 5. 服务安装失败
+#### 7. 服务安装失败
 - 确保以管理员身份运行
 - 确保NSSM工具已下载到客户端目录
 

@@ -674,6 +674,8 @@ curl http://localhost:13141/status
 
 5. [ ] 增加客户端找不到服务端的报警通知功能
 
+6. [ ] 适配更多客户端，如安卓，Mac，IOS，Linux等
+
 
 ## 📋 项目文件说明
 

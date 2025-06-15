@@ -10,6 +10,8 @@
   - 通过ipconfig命令解析系统网络配置
   - 通过在线API获取公网IPv6地址
 - 当IPv6地址变化时自动发送邮件通知
+- 支持仅发送开机通知功能，不检测IPv6地址
+- 支持在系统关机时发送通知邮件，包含最后的IPv6地址信息
 - 支持多种加密传输方式（SSL/TLS），保障邮件传输安全
 - 支持自定义邮箱设置和检查间隔
 - 自动记录日志，便于排查问题
@@ -20,13 +22,22 @@
 ## 文件说明
 
 - `auto_send_ipv6.py` - 主程序，负责获取IPv6地址并发送邮件
+- `boot_notification.py` - 开机通知程序，仅在开机时发送通知邮件
+- `shutdown_notification.py` - 关机通知程序，在系统关机时发送通知邮件
 - `config.json` - 配置文件，包含邮箱信息和路径设置
-- `setup_autostart.bat` - 设置开机自启动的批处理脚本
-- `start_ipv6_sender.vbs` - 后台运行程序的VBS脚本（由setup_autostart.bat自动创建）
+- `setup_autostart.bat` - 设置IPv6地址发送功能开机自启动的批处理脚本
+- `setup_boot_notification.bat` - 设置开机通知功能自启动的批处理脚本
+- `setup_shutdown_notification.bat` - 设置关机通知功能的批处理脚本
+- `remove_shutdown_notification.bat` - 移除关机通知功能的批处理脚本
+- `start_ipv6_sender.vbs` - 后台运行IPv6发送程序的VBS脚本（由setup_autostart.bat自动创建）
+- `start_boot_notification.vbs` - 后台运行开机通知程序的VBS脚本（由setup_boot_notification.bat自动创建）
 - `test_ipv6_email.py` - 测试IPv6地址获取和邮件发送的脚本
+- `test_boot_notification.py` - 测试开机通知功能的脚本
 - `test_qq_email.py` - 专门测试QQ邮箱SMTP发送功能的脚本
 - `requirements.txt` - 依赖库列表
 - `ipv6_sender.log` - 日志文件（程序运行时自动创建）
+- `boot_notification.log` - 开机通知日志文件（开机通知程序运行时自动创建）
+- `shutdown_notification.log` - 关机通知日志文件（关机通知程序运行时自动创建）
 
 ## 使用说明
 
@@ -35,10 +46,13 @@
 1. 确保您的系统已安装Python（建议3.6及以上版本）
 2. 下载本程序所有文件到同一个文件夹
 3. 修改`config.json`文件，填入您的邮箱设置及自定义路径
-4. 运行`setup_autostart.bat`设置开机自启动
-   - 它会自动安装所需的依赖库
-   - 创建开机启动快捷方式
-   - 生成后台运行的VBS脚本
+4. 根据需要选择安装方式：
+   - 运行`setup_autostart.bat`设置IPv6地址发送功能的开机自启动
+   - 或运行`setup_boot_notification.bat`设置开机通知功能的开机自启动
+   - 或运行`setup_shutdown_notification.bat`设置关机通知功能（需要管理员权限）
+   - 这些脚本会自动安装所需的依赖库
+   - 创建开机启动快捷方式或设置任务计划
+   - 生成后台运行的VBS脚本（如适用）
    - 检测并防止重复安装，避免多实例问题
 
 ### 配置文件说明
@@ -201,3 +215,27 @@
 - 如需卸载，只需删除启动文件夹中的快捷方式即可停止自动启动
 - 程序默认每小时检查一次IPv6地址，可在配置文件中修改检查间隔
 - 修改配置文件中的路径设置后，需要重新运行`setup_autostart.bat`以应用新的路径设置
+
+## 关机通知功能
+
+关机通知功能会在系统关机时发送一封邮件，通知您系统正在关机，并提供最后记录的IPv6地址。
+
+### 安装关机通知功能
+
+1. 以管理员身份运行`setup_shutdown_notification.bat`脚本
+2. 脚本会创建一个名为"IPv6ShutdownNotification"的Windows任务计划
+3. 此任务将在系统关机事件触发时运行`shutdown_notification.py`程序
+4. 程序将使用配置文件中设置的邮箱信息发送关机通知邮件
+
+### 卸载关机通知功能
+
+1. 以管理员身份运行`remove_shutdown_notification.bat`脚本
+2. 脚本会删除名为"IPv6ShutdownNotification"的Windows任务计划
+3. 关机通知功能将被禁用
+
+### 注意事项
+
+- 设置和移除关机通知功能均需要管理员权限
+- 关机通知功能依赖于Windows任务计划程序
+- 关机通知将在网络仍然可用的情况下发送
+- 如果系统是强制关机或断电，则通知可能无法成功发送

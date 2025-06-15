@@ -1,0 +1,36 @@
+{
+  "check_interval": 300,
+  "notify_when_back_online": true,
+  "include_online_in_report": true,
+  "status_file": "device_status.json",
+  "email": {
+    "smtp_server": "smtp.qq.com",
+    "smtp_port": 465,
+    "smtp_encryption": "SSL",
+    "sender_email": "your_email@qq.com",
+    "sender_password": "your_email_password",
+    "receiver_email": "recipient@example.com",
+    "subject_prefix": "[设备监控]"
+  },
+  "devices": [
+    {
+      "name": "家庭服务器",
+      "ip": "192.168.1.100",
+      "check_method": "ping",
+      "description": "存储服务器，运行NAS系统"
+    },
+    {
+      "name": "工作站",
+      "ip": "192.168.1.101",
+      "check_method": "ping",
+      "description": "日常开发使用的工作站"
+    },
+    {
+      "name": "树莓派",
+      "ip": "192.168.1.102",
+      "check_method": "tcp",
+      "port": 22,
+      "description": "智能家居控制中心"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  heartbeat-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: heartbeat-server:latest
+    container_name: heartbeat-server
+    restart: unless-stopped
+    ports:
+      - "18080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      - TZ=Asia/Shanghai
+      - CONFIG_PATH=/data/heartbeat_config.json
+      - STATUS_PATH=/data/heartbeat_status.json
+      - LOG_PATH=/data/heartbeat_server.log
+    networks:
+      - heartbeat-network
+    # 添加健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  heartbeat-network:
+    driver: bridge 

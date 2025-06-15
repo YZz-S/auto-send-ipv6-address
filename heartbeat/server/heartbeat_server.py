@@ -13,12 +13,34 @@ from typing import Dict, List
 
 # 配置日志
 log_file = os.environ.get("LOG_PATH", "heartbeat_server.log")
-logging.basicConfig(
-    filename=log_file,
-    level=logging.INFO,
-    format="[%(asctime)s] %(levelname)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
+
+# 创建日志格式器
+formatter = logging.Formatter(
+    fmt="[%(asctime)s] %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
 )
+
+# 创建根日志记录器
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# 清空现有的处理器
+logger.handlers.clear()
+
+# 添加文件处理器
+file_handler = logging.FileHandler(log_file, encoding="utf-8")
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+# 添加控制台处理器（用于Docker日志）
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
+# 确保日志立即刷新
+logging.getLogger().handlers[0].flush = lambda: None
+logging.getLogger().handlers[1].flush = lambda: None
 
 # 设备状态存储
 DEVICE_STATUS = {}
@@ -1168,13 +1190,20 @@ class HeartbeatRequestHandler(http.server.BaseHTTPRequestHandler):
                     is_new_device = False
                     if device_id not in DEVICE_STATUS:
                         is_new_device = True
+                        device_name = heartbeat_data.get("name", device_id)
+                        device_desc = heartbeat_data.get("description", "")
                         DEVICE_STATUS[device_id] = {
-                            "name": heartbeat_data.get("name", device_id),
-                            "description": heartbeat_data.get("description", ""),
+                            "name": device_name,
+                            "description": device_desc,
                             "first_seen": now.strftime("%Y-%m-%d %H:%M:%S"),
                             "status": "online",
+                            "device_id": device_id,
                         }
-                        logging.info(f"新设备首次心跳: {device_id}")
+                        logging.info(
+                            f"🔗 新设备连接 - ID: {device_id}, 名称: {device_name}, IP: {self.client_address[0]}"
+                        )
+                        if device_desc:
+                            logging.info(f"   描述: {device_desc}")
 
                     # 如果设备之前是离线状态
                     was_offline = DEVICE_STATUS[device_id].get("status") == "offline"
@@ -1186,17 +1215,30 @@ class HeartbeatRequestHandler(http.server.BaseHTTPRequestHandler):
                             "status": "online",
                             "ip": self.client_address[0],
                             "info": heartbeat_data.get("info", {}),
+                            "device_id": device_id,
                         }
                     )
 
                     # 如果不是新设备，且之前是离线状态，则发送恢复通知
                     if not is_new_device and was_offline:
                         device_info = DEVICE_STATUS[device_id].copy()
+                        device_name = device_info.get("name", device_id)
+                        offline_duration = ""
+                        if "offline_since" in device_info:
+                            offline_since = datetime.strptime(
+                                device_info["offline_since"], "%Y-%m-%d %H:%M:%S"
+                            )
+                            duration = now - offline_since
+                            offline_duration = f" (离线时长: {duration})"
+
+                        logging.info(
+                            f"✅ 设备恢复在线 - ID: {device_id}, 名称: {device_name}, IP: {self.client_address[0]}{offline_duration}"
+                        )
+
                         threading.Thread(
                             target=send_status_notification,
                             args=([device_info], [], "recovery"),
                         ).start()
-                        logging.info(f"设备已恢复在线: {device_id}")
 
                     # 保存状态
                     save_status()
@@ -1405,9 +1447,13 @@ def check_device_status():
                     "%Y-%m-%d %H:%M:%S"
                 )
                 offline_devices.append(device_info)
+                device_name = device_info.get("name", device_id)
+                device_ip = device_info.get("ip", "未知")
+                timeout_duration = f"{int(time_diff // 60)}分{int(time_diff % 60)}秒"
                 logging.warning(
-                    f"设备已离线: {device_id}, 最后心跳: {device_info['last_heartbeat']}"
+                    f"❌ 设备离线 - ID: {device_id}, 名称: {device_name}, IP: {device_ip}, 超时时长: {timeout_duration}"
                 )
+                logging.warning(f"   最后心跳: {device_info['last_heartbeat']}")
         else:
             device_info["status"] = "online"
             online_devices.append(device_info)
@@ -1485,23 +1531,58 @@ def main():
         return
 
     try:
+        # 打印启动横幅
+        print("=" * 60)
+        print("🚀 心跳监控服务器启动中...")
+        print("=" * 60)
+
         # 加载配置
         config = load_config()
 
+        # 记录配置信息
+        logging.info("📋 服务器配置信息:")
+        logging.info(f"   心跳超时时间: {config.get('heartbeat_timeout', 300)}秒")
+        logging.info(f"   状态检查间隔: {config.get('check_interval', 60)}秒")
+        logging.info(f"   配置文件路径: {CONFIG_FILE}")
+        logging.info(f"   状态文件路径: {STATUS_FILE}")
+        logging.info(f"   日志文件路径: {log_file}")
+
         # 加载之前的状态
         load_status()
+
+        # 统计现有设备
+        if DEVICE_STATUS:
+            online_count = sum(
+                1 for d in DEVICE_STATUS.values() if d.get("status") == "online"
+            )
+            offline_count = len(DEVICE_STATUS) - online_count
+            logging.info(
+                f"📊 已加载设备状态: 总计 {len(DEVICE_STATUS)} 台设备 (在线: {online_count}, 离线: {offline_count})"
+            )
+        else:
+            logging.info("📊 暂无已注册设备")
 
         # 设置端口
         port = config.get("http_port", 8080)
 
         # 启动状态监控线程
         threading.Thread(target=status_monitor, daemon=True).start()
+        logging.info("🔍 状态监控线程已启动")
 
         # 启动HTTP服务器
         with socketserver.TCPServer(("", port), HeartbeatRequestHandler) as httpd:
-            logging.info(f"心跳监控服务器启动，监听端口: {port}")
-            print(f"心跳监控服务器启动，监听端口: {port}")
-            print(f"设备可通过 http://[server-ip]:{port}/heartbeat 发送心跳")
+            logging.info("=" * 60)
+            logging.info("✅ 心跳监控服务器启动成功！")
+            logging.info(f"🌐 监听端口: {port}")
+            logging.info(f"📡 心跳接收地址: http://[server-ip]:{port}/heartbeat")
+            logging.info(f"🖥️  状态监控页面: http://[server-ip]:{port}/")
+            logging.info("=" * 60)
+
+            print(f"✅ 心跳监控服务器启动成功，监听端口: {port}")
+            print(f"📡 设备可通过 http://[server-ip]:{port}/heartbeat 发送心跳")
+            print(f"🖥️  访问 http://[server-ip]:{port}/ 查看监控页面")
+            print("🎯 服务器正在运行，按 Ctrl+C 停止...")
+
             httpd.serve_forever()
 
     except FileNotFoundError:
